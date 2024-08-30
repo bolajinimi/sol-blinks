@@ -4,53 +4,78 @@ import { clusterApiUrl, Connection, PublicKey, SystemProgram, Transaction } from
 
 export async function GET(request: Request) {
   const responseBody: ActionGetResponse = {
-    icon: "https://cryptologos.cc/logos/solana-sol-logo.png",
-    description: "This is solana demo links!",
-    title: "Do blinks!",
-    label: "click me!",
+    icon: "https://images.pexels.com/photos/2529148/pexels-photo-2529148.jpeg",
+    description: "This is a solana shoe store!",
+    title: "1.5 SOL",
+    label: "Buy",
     links: {
       actions: [
         {
           href: request.url,
-          label: "same action",
+          label: "Buy",
+          parameters: [
+            {
+              name: 'address',
+              type: 'text',
+              label: 'home address',
+              required: true,
+            },
+            {
+              name: 'phone',
+              type: 'text',
+              label: 'phone number',
+              required: true,
+            },
+            {
+              name: 'size',
+              type: 'text',
+              label: 'shoe size',
+              required: true,
+            },
+            // {
+            //   name: 'quantity',
+            //   type: 'text',
+            //   label: '1-10',
+            // },
+            // {
+            //   name: 'color',
+            //   type: 'text',
+            //   label: 'shoe color',
+            //   required: true,
+            // },
+          ],
         },
-        {
-          href: request.url+"?action=another",
-          label: "another action",
-        },
-        
+
+
       ]
     },
-    // error: {
-    //   message: "link not implemented yet",
-    // },
     type: "action",
   };
   return new Response(JSON.stringify(responseBody), {
     headers: {
       ...ACTIONS_CORS_HEADERS,
       "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": "*", 
+      "Access-Control-Allow-Origin": "*",
     },
   });
 }
 
 export async function POST(request: Request) {
   try {
-    const requestBody: ActionPostRequest = await request.clone().json(); 
+    const requestBody: ActionPostRequest = await request.clone().json();
     const userPubKey = requestBody.account;
     console.log(userPubKey);
 
     const url = new URL(request.url)
     const action = url.searchParams.get("action");
-    
+
     console.log("performing action "+action)
 
-    const user = new PublicKey(userPubKey); 
-    const connection = new Connection(clusterApiUrl("testnet"));	
+    const user = new PublicKey(userPubKey);
+    const connection = new Connection(clusterApiUrl("testnet"));
     const ix = SystemProgram.transfer({
-        fromPubkey: user, 
-        toPubkey: new PublicKey('BVqhTFKfBmwuLLGF56FZgd7REnnfY7x6UiFrSMv4r46m'), 
+        fromPubkey: user,
+        toPubkey: new PublicKey('BVqhTFKfBmwuLLGF56FZgd7REnnfY7x6UiFrSMv4r46m'),
         lamports: 1
     });
 
@@ -58,10 +83,10 @@ export async function POST(request: Request) {
     const tx = new Transaction();
     if (action === "another"){
       tx.add(ix)
-    } 
+    }
     tx.feePayer = user;
     const bh = (await connection.getLatestBlockhash({commitment: "finalized"})).blockhash;
-    tx.recentBlockhash = bh 
+    tx.recentBlockhash = bh
     const serialTx  = tx.serialize({requireAllSignatures: false, verifySignatures: false}).toString('base64');
 
     const response: ActionPostResponse = {
@@ -90,7 +115,7 @@ export async function POST(request: Request) {
 
 export async function OPTIONS(request: Request) {
   return new Response(null, {headers: ACTIONS_CORS_HEADERS});
- 
+
 
 }
 
