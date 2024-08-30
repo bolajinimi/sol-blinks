@@ -1,100 +1,91 @@
-/* eslint-disable no-global-assign */
+// Import necessary modules
 import { ActionGetResponse, ActionPostRequest, ActionPostResponse, ACTIONS_CORS_HEADERS } from "@solana/actions";
 import { clusterApiUrl, Connection, PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
 
+// GET Request Handler
 export async function GET(request: Request) {
-  const responseBody: ActionGetResponse = {
-    icon: "https://images.pexels.com/photos/2529148/pexels-photo-2529148.jpeg",
-    description: "This is a solana shoe store!",
-    title: "1.5 SOL",
-    label: "Buy",
-    links: {
-      actions: [
-        {
-          href: request.url,
-          label: "Buy",
-          parameters: [
-            {
-              name: 'address',
-              type: 'text',
-              label: 'home address',
-              required: true,
-            },
-            {
-              name: 'phone',
-              type: 'text',
-              label: 'phone number',
-              required: true,
-            },
-            {
-              name: 'size',
-              type: 'text',
-              label: 'shoe size',
-              required: true,
-            },
-            // {
-            //   name: 'quantity',
-            //   type: 'text',
-            //   label: '1-10',
-            // },
-            // {
-            //   name: 'color',
-            //   type: 'text',
-            //   label: 'shoe color',
-            //   required: true,
-            // },
-          ],
-        },
-
-
-      ]
-    },
-    type: "action",
-  };
-  return new Response(JSON.stringify(responseBody), {
-    headers: {
-      ...ACTIONS_CORS_HEADERS,
-      "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": "*",
-    },
-  });
+  try {
+    const requestURL = new URL(request.url);
+    const iconURL = new URL("/shoe.png", requestURL.origin);
+    const responseBody: ActionGetResponse = {
+      icon: iconURL.toString(),
+      description: "This is a Solana shoe store!",
+      title: "1.5 SOL",
+      label: "Buy",
+      links: {
+        actions: [
+          {
+            href: request.url,
+            label: "Buy",
+            parameters: [
+              { name: 'address', type: 'text', label: 'Home Address', required: true },
+              { name: 'phone', type: 'text', label: 'Phone Number', required: true },
+              { name: 'size', type: 'text', label: 'Shoe Size', required: true },
+              // Optional parameters
+              // { name: 'quantity', type: 'text', label: 'Quantity (1-10)' },
+              // { name: 'color', type: 'text', label: 'Shoe Color' },
+            ],
+          },
+        ],
+      },
+      type: "action",
+    };
+    return new Response(JSON.stringify(responseBody), {
+      headers: {
+        ...ACTIONS_CORS_HEADERS,
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+      },
+    });
+  } catch (error) {
+    console.error("Error processing GET request:", error);
+    return new Response(JSON.stringify({ error: "Failed to process request" }), {
+      status: 500,
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+      },
+    });
+  }
 }
 
+// POST Request Handler
 export async function POST(request: Request) {
   try {
     const requestBody: ActionPostRequest = await request.clone().json();
     const userPubKey = requestBody.account;
-    console.log(userPubKey);
-
-    const url = new URL(request.url)
+    const url = new URL(request.url);
     const action = url.searchParams.get("action");
 
-    console.log("performing action "+action)
+    // Logging for debugging
+    console.log("User Public Key:", userPubKey);
+    console.log("Performing action:", action);
 
     const user = new PublicKey(userPubKey);
-    const connection = new Connection(clusterApiUrl("testnet"));
+    const connection = new Connection(clusterApiUrl("mainnet-beta"), "confirmed"); // Use confirmed commitment
+
+    // Transaction
     const ix = SystemProgram.transfer({
-        fromPubkey: user,
-        toPubkey: new PublicKey('BVqhTFKfBmwuLLGF56FZgd7REnnfY7x6UiFrSMv4r46m'),
-        lamports: 1
+      fromPubkey: user,
+      toPubkey: new PublicKey('BVqhTFKfBmwuLLGF56FZgd7REnnfY7x6UiFrSMv4r46m'),
+      lamports: 2,
     });
 
-
     const tx = new Transaction();
-    if (action === "another"){
-      tx.add(ix)
+    if (action === "another") {
+      tx.add(ix);
     }
     tx.feePayer = user;
-    const bh = (await connection.getLatestBlockhash({commitment: "finalized"})).blockhash;
-    tx.recentBlockhash = bh
-    const serialTx  = tx.serialize({requireAllSignatures: false, verifySignatures: false}).toString('base64');
+    const { blockhash } = await connection.getLatestBlockhash({ commitment: "confirmed" });
+    tx.recentBlockhash = blockhash;
+
+    const serializedTx = tx.serialize({ requireAllSignatures: false, verifySignatures: false }).toString('base64');
 
     const response: ActionPostResponse = {
-      transaction: serialTx,
-      message: "hello " + userPubKey,
+      transaction: serializedTx,
+      message: `Transaction for ${userPubKey}`,
     };
 
-    // Create and return the Response object in one step
     return new Response(JSON.stringify(response), {
       headers: {
         "Content-Type": "application/json",
@@ -107,15 +98,13 @@ export async function POST(request: Request) {
       status: 500,
       headers: {
         "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*", // Allow requests from any origin
+        "Access-Control-Allow-Origin": "*",
       },
     });
   }
 }
 
+// OPTIONS Request Handler
 export async function OPTIONS(request: Request) {
-  return new Response(null, {headers: ACTIONS_CORS_HEADERS});
-
-
+  return new Response(null, { headers: ACTIONS_CORS_HEADERS });
 }
-
