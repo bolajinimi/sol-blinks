@@ -1,4 +1,12 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": ".next"
+  "builds": [
+    { "src": "package.json", "use": "@vercel/next" }
+  ],
+  "build": {
+    "env": {
+      "NODE_ENV": "production"
+    },
+    "command": "npm run build",
+    "outputDirectory": ".next"
+  }
 }
